@@ -446,9 +446,15 @@ function queryFromUrl() {
 /* ------------------------------------------------------------
    Load pipeline
    ------------------------------------------------------------ */
+/* The right advice differs by where the page is running: a local checkout
+   needs config.js, a Pages deployment needs repository settings. */
 const SETUP_HINT =
-  "No weather credentials found. Copy config.example.js to config.js, then add " +
-  "your Worker URL (recommended) or an OpenWeather key.";
+  (typeof location !== "undefined" && /\.github\.io$/.test(location.hostname))
+    ? "No weather credentials configured for this deployment. In the repository, " +
+      "set the WEATHERX_PROXY_URL variable (recommended) or the OPENWEATHER_API_KEY " +
+      "secret, then re-run the Pages workflow."
+    : "No weather credentials found. Copy config.example.js to config.js, then add " +
+      "your Worker URL (recommended) or an OpenWeather key.";
 
 async function loadWeather(query, label = null) {
   // A fresh clone has no config.js, so say what to do instead of firing 401s.
