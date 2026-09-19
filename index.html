@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-cond="none">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="WeatherX — a photographic weather report: live conditions, air quality, an hourly trend and a five-day outlook." />
+  <meta name="color-scheme" content="dark light" />
+  <meta name="theme-color" content="#0b0d12" />
+  <title>WeatherX — Live Weather &amp; Forecast</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://api.openweathermap.org" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@200;300;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⛅</text></svg>" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand__name">Weather<em>X</em></span>
+      <span class="brand__tag">photographic forecast</span>
+    </div>
+
+    <div class="topbar__actions">
+      <div class="unit-toggle" role="group" aria-label="Temperature units">
+        <button type="button" class="unit-toggle__btn is-active" data-unit="metric" aria-pressed="true">°C</button>
+        <button type="button" class="unit-toggle__btn" data-unit="imperial" aria-pressed="false">°F</button>
+      </div>
+
+      <button type="button" class="icon-btn" id="themeBtn" aria-label="Switch to light theme" title="Switch theme">
+        <svg class="icon-btn__sun" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.2" />
+          <path d="M12 2.2v2.4M12 19.4v2.4M2.2 12h2.4M19.4 12h2.4M5 5l1.7 1.7M17.3 17.3 19 19M19 5l-1.7 1.7M6.7 17.3 5 19" />
+        </svg>
+        <svg class="icon-btn__moon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M20 14.2A8.2 8.2 0 0 1 9.8 4a8.4 8.4 0 1 0 10.2 10.2Z" />
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="shell" id="main">
+    <h1 class="sr-only">WeatherX — live weather and forecast</h1>
+
+    <!-- Search + autocomplete -->
+    <form class="search" id="searchForm" role="search" autocomplete="off">
+      <svg class="search__icon" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="11" cy="11" r="7" /><path d="m20 20-3.6-3.6" />
+      </svg>
+      <input
+        id="city"
+        class="search__input"
+        type="search"
+        name="city"
+        placeholder="Search a city — try Nairobi, London or Tokyo"
+        aria-label="City name"
+        enterkeyhint="search"
+        spellcheck="false"
+        role="combobox"
+        aria-expanded="false"
+        aria-controls="acList"
+        aria-autocomplete="list"
+      />
+      <kbd class="search__kbd" aria-hidden="true">/</kbd>
+      <button class="search__geo" type="button" id="geoBtn" title="Use my location" aria-label="Use my location">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 2v3m0 14v3M2 12h3m14 0h3" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.5" class="filled" />
+        </svg>
+      </button>
+      <button class="search__btn" type="submit"><span>Search</span></button>
+
+      <ul class="ac" id="acList" role="listbox" aria-label="City suggestions" hidden></ul>
+    </form>
+
+    <!-- Recent searches -->
+    <div class="recents" id="recents" hidden>
+      <span class="recents__label">Recent</span>
+      <div class="recents__chips" id="recentsChips"></div>
+    </div>
+
+    <!-- Status / error -->
+    <div class="status" id="status" role="status" aria-live="polite" hidden></div>
+
+    <!-- Loading skeleton -->
+    <div class="skeleton" id="skeleton" hidden aria-hidden="true">
+      <div class="sk-stage">
+        <div class="sk sk--feature"></div>
+        <div class="sk-col">
+          <div class="sk sk--tile"></div><div class="sk sk--tile"></div>
+          <div class="sk sk--tile"></div><div class="sk sk--tile"></div>
+        </div>
+      </div>
+      <div class="sk sk--strip"></div>
+    </div>
+
+    <!-- Results -->
+    <section class="result" id="result" hidden>
+
+      <div class="stage">
+        <!-- Photographic hero -->
+        <article class="feature">
+          <div class="feature__media grainy">
+            <img class="feature__photo" id="heroPhoto" alt="" width="300" height="180" />
+            <div class="feature__wash"></div>
+            <span class="feature__badge" id="heroBadge">—</span>
+            <img class="feature__glyph" id="heroIcon" alt="" width="64" height="64" />
+            <div class="feature__caption">
+              <h2 class="feature__place" id="heroCity">—</h2>
+              <p class="feature__clock" id="clock">—</p>
+            </div>
+          </div>
+
+          <div class="feature__body">
+            <div class="feature__temp">
+              <span class="feature__value" id="heroTemp">--</span>
+              <span class="feature__unit" id="heroUnit">°C</span>
+            </div>
+
+            <p class="feature__desc" id="heroDesc">—</p>
+            <p class="feature__feels">
+              <span class="feels__part">Feels like <strong id="heroFeels">--</strong></span>
+              <!-- Hidden late in the local day, once the forecast has no slots
+                   left for today and the range is genuinely unknown. -->
+              <span class="feels__part" id="heroRange">
+                <i class="dot"></i> H <strong id="heroMax">--</strong>
+                <i class="dot"></i> L <strong id="heroMin">--</strong>
+              </span>
+            </p>
+          </div>
+        </article>
+
+        <!-- Readout column -->
+        <div class="readout">
+          <div class="tiles">
+            <div class="tile">
+              <span class="tile__label">Humidity</span>
+              <span class="tile__value" id="mHumidity">--</span>
+              <div class="meter"><div class="meter__fill" id="humidityBar"></div></div>
+            </div>
+
+            <div class="tile tile--wind">
+              <span class="tile__label">Wind</span>
+              <span class="tile__value" id="mWind">--</span>
+              <span class="tile__sub" id="mWindDir">—</span>
+              <svg class="compass" viewBox="0 0 48 48" aria-hidden="true">
+                <circle class="compass__ring" cx="24" cy="24" r="18" />
+                <g id="compassNeedle" style="transform-origin:24px 24px">
+                  <path class="compass__arrow filled" d="M24 8 L29 27 L24 23 L19 27 Z" />
+                </g>
+                <circle class="compass__hub filled" cx="24" cy="24" r="1.8" />
+              </svg>
+            </div>
+
+            <div class="tile">
+              <span class="tile__label">Air quality</span>
+              <span class="tile__value" id="mAqi">--</span>
+              <span class="tile__sub" id="mAqiSub">—</span>
+              <div class="meter"><div class="meter__fill" id="aqiBar"></div></div>
+            </div>
+
+            <div class="tile">
+              <span class="tile__label">Pressure</span>
+              <span class="tile__value" id="mPressure">--</span>
+              <span class="tile__sub">hPa</span>
+            </div>
+
+            <div class="tile">
+              <span class="tile__label">Visibility</span>
+              <span class="tile__value" id="mVisibility">--</span>
+              <span class="tile__sub">horizontal</span>
+            </div>
+
+            <div class="tile">
+              <span class="tile__label">Cloud cover</span>
+              <span class="tile__value" id="mClouds">--</span>
+              <div class="meter"><div class="meter__fill" id="cloudBar"></div></div>
+            </div>
+          </div>
+
+          <!-- Sun arc -->
+          <div class="suncard">
+            <span class="tile__label">Daylight</span>
+            <svg class="sun__svg" viewBox="0 0 120 70" aria-hidden="true">
+              <path class="sun__track" d="M8 58 A 52 52 0 0 1 112 58" />
+              <path class="sun__progress" id="sunProgress" d="M8 58 A 52 52 0 0 1 112 58" />
+              <line class="sun__horizon" x1="2" y1="58" x2="118" y2="58" />
+              <circle class="sun__dot" id="sunDot" cx="8" cy="58" r="4.5" />
+            </svg>
+            <div class="sun__labels">
+              <span class="sun__cell"><b id="mSunrise">--</b><i>sunrise</i></span>
+              <span class="sun__len" id="dayLength">—</span>
+              <span class="sun__cell sun__cell--end"><b id="mSunset">--</b><i>sunset</i></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hourly -->
+      <section class="panel" id="hourlyPanel">
+        <div class="panel__head">
+          <h2 class="panel__title">Next 24 hours</h2>
+          <span class="panel__hint" id="trendHint"></span>
+        </div>
+        <svg class="spark" id="spark" viewBox="0 0 600 90" preserveAspectRatio="none" aria-hidden="true" hidden></svg>
+        <div class="hourly" id="hourly"></div>
+      </section>
+
+      <!-- Daily filmstrip -->
+      <section class="panel" id="dailyPanel">
+        <div class="panel__head">
+          <h2 class="panel__title">Five day outlook</h2>
+        </div>
+        <ul class="strip" id="daily"></ul>
+      </section>
+
+      <!-- Shown only if the (slow) forecast call fails; current conditions stay on screen -->
+      <div class="notice" id="forecastNote" hidden>
+        <span>Forecast unavailable right now.</span>
+        <button type="button" id="retryForecast">Retry</button>
+      </div>
+    </section>
+
+    <!-- Empty state -->
+    <section class="empty" id="empty">
+      <div class="empty__gallery" aria-hidden="true">
+        <img src="images/clear.jpg" alt="" width="300" height="180" loading="lazy" />
+        <img src="images/clouds.jpg" alt="" width="300" height="180" loading="lazy" />
+        <img src="images/rain.jpg" alt="" width="300" height="180" loading="lazy" />
+        <img src="images/thunderstorms.jpg" alt="" width="300" height="180" loading="lazy" />
+        <img src="images/snow.jpg" alt="" width="300" height="180" loading="lazy" />
+        <img src="images/mist.jpg" alt="" width="300" height="180" loading="lazy" />
+      </div>
+      <h2>Every forecast, in pictures.</h2>
+      <p>Search a city to see live conditions, its local time, air quality and a five-day outlook.</p>
+      <div class="empty__suggestions" id="suggestions">
+        <button type="button" data-city="Nairobi">Nairobi</button>
+        <button type="button" data-city="London">London</button>
+        <button type="button" data-city="Tokyo">Tokyo</button>
+        <button type="button" data-city="New York">New York</button>
+        <button type="button" data-city="Cape Town">Cape Town</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>Data by <a href="https://openweathermap.org/" target="_blank" rel="noopener noreferrer">OpenWeather</a></span>
+  </footer>
+
+  <!-- Gitignored local credentials; copy config.example.js to config.js.
+       Absent on a fresh clone, which the app reports rather than failing. -->
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

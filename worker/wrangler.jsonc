@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "weatherx-api",
+  "main": "src/index.js",
+  // Newest date the pinned wrangler (4.129.0) runtime supports; bump as wrangler updates.
+  "compatibility_date": "2026-09-10",
+
+  "observability": {
+    "enabled": true,
+    "logs": { "enabled": true, "head_sampling_rate": 1 },
+    "traces": { "enabled": true, "head_sampling_rate": 0.01 }
+  },
+
+  "vars": {
+    // Comma-separated origins allowed to call this proxy. Narrow this to your
+    // own site once deployed, e.g. "https://jeffboss315.github.io".
+    "ALLOWED_ORIGINS": "*"
+  }
+
+  // Secret, never in this file:
+  //   npx wrangler secret put OPENWEATHER_API_KEY
+}
