@@ -38,7 +38,8 @@ jobs:
         # Worker proxy: with it the key stays server-side. A direct key ends up
         # in the deployed JavaScript, where any visitor can read it.
         env:
-          PROXY_URL: ${{ vars.WEATHERX_PROXY_URL }}
+          # Public URL, not a secret - defaulted so no repo variable is required.
+          PROXY_URL: ${{ vars.WEATHERX_PROXY_URL || 'https://weatherx-api.gaming-nation.workers.dev' }}
           API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
         run: |
           if [ -n "$PROXY_URL" ]; then

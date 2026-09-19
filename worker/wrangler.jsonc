@@ -12,9 +12,10 @@
   },
 
   "vars": {
-    // Comma-separated origins allowed to call this proxy. Narrow this to your
-    // own site once deployed, e.g. "https://jeffboss315.github.io".
-    "ALLOWED_ORIGINS": "*"
+    // Origins allowed to call this proxy from a browser. Note this is CORS,
+    // not access control: it stops other *sites* using the proxy from their
+    // pages, but curl and scripts ignore it entirely.
+    "ALLOWED_ORIGINS": "https://jeffboss315.github.io,http://localhost:8080,http://127.0.0.1:8080,http://localhost:5503"
   }
 
   // Secret, never in this file:
