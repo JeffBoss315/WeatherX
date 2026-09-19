@@ -31,12 +31,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
+
       - name: Write runtime config
-        # config.js is gitignored, so the deployed site has no credentials
-        # unless we generate it here. Prefer the Worker proxy: with it the key
-        # stays server-side. A direct key becomes readable by every visitor.
+        # config.js is gitignored, so a deployed build would otherwise have no
+        # credentials and would just render its setup message. Prefer the
+        # Worker proxy: with it the key stays server-side. A direct key ends up
+        # in the deployed JavaScript, where any visitor can read it.
         env:
           PROXY_URL: ${{ vars.WEATHERX_PROXY_URL }}
           API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
@@ -46,25 +46,25 @@ jobs:
           elif [ -n "$API_KEY" ]; then
             echo "::warning::Deploying with a direct API key. Any visitor can read it in DevTools. Set the WEATHERX_PROXY_URL variable to a deployed Worker to keep it private."
           else
-            echo "::warning::Neither the WEATHERX_PROXY_URL variable nor the OPENWEATHER_API_KEY secret is set - the site will show its setup message."
+            echo "::warning::Neither the WEATHERX_PROXY_URL variable nor the OPENWEATHER_API_KEY secret is set, so the site will show its setup message."
           fi
           {
             echo "/* Generated at deploy time by .github/workflows/static.yml. */"
             echo "window.WEATHERX = {"
-            printf '  proxyUrl: "%s",
-' "$PROXY_URL"
-            printf '  apiKey: "%s",
-' "$API_KEY"
+            echo "  proxyUrl: \"$PROXY_URL\","
+            echo "  apiKey: \"$API_KEY\","
             echo "};"
           } > config.js
-          echo "--- config.js written (key masked) ---"
-          sed 's/apiKey: ".\+"/apiKey: "***"/' config.js
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           # Upload entire repository
           path: '.'
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
