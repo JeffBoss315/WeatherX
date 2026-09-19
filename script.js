@@ -218,57 +218,73 @@ function initTheme() {
 /* ------------------------------------------------------------
    Condition photographs
    ------------------------------------------------------------
-   Six source photos, each ~300x180. They are shown in the 240px
-   hero band and in the ~150-190px filmstrip cards, so they stay
-   at or below roughly 1.5x their native size and read sharp.
+   Twelve photographs: a day and a night variant for each of six
+   condition groups, 1000x666 each. Sources and licences are in
+   CREDITS.md. Everything renders them below native size, so they
+   stay sharp.
    ------------------------------------------------------------ */
 const CONDITIONS = {
-  clear:        { photo: "images/clear.jpg",         key: "clear" },
-  clouds:       { photo: "images/clouds.jpg",        key: "clouds" },
-  rain:         { photo: "images/rain.jpg",          key: "rain" },
-  drizzle:      { photo: "images/rain.jpg",          key: "drizzle" },
-  snow:         { photo: "images/snow.jpg",          key: "snow" },
-  thunderstorm: { photo: "images/thunderstorms.jpg", key: "thunderstorm" },
-  mist:         { photo: "images/mist.jpg",          key: "mist" },
-  fog:          { photo: "images/mist.jpg",          key: "mist" },
-  haze:         { photo: "images/mist.jpg",          key: "mist" },
-  smoke:        { photo: "images/mist.jpg",          key: "mist" },
-  dust:         { photo: "images/mist.jpg",          key: "mist" },
-  sand:         { photo: "images/mist.jpg",          key: "mist" },
-  ash:          { photo: "images/mist.jpg",          key: "mist" },
-  squall:       { photo: "images/thunderstorms.jpg", key: "thunderstorm" },
-  tornado:      { photo: "images/thunderstorms.jpg", key: "thunderstorm" },
+  clear:        { key: "clear" },
+  clouds:       { key: "clouds" },
+  rain:         { key: "rain" },
+  drizzle:      { key: "rain" },
+  snow:         { key: "snow" },
+  thunderstorm: { key: "thunderstorm" },
+  mist:         { key: "mist" },
+  fog:          { key: "mist" },
+  haze:         { key: "mist" },
+  smoke:        { key: "mist" },
+  dust:         { key: "mist" },
+  sand:         { key: "mist" },
+  ash:          { key: "mist" },
+  squall:       { key: "thunderstorm" },
+  tornado:      { key: "thunderstorm" },
 };
 
-const FALLBACK = { photo: "images/clouds.jpg", key: "clouds" };
+const FALLBACK = { key: "clouds" };
 
 function conditionOf(mainWeather) {
   return CONDITIONS[String(mainWeather).toLowerCase()] || FALLBACK;
 }
 
 /**
+ * OpenWeather icon codes end in "d" or "n", so the same condition can show a
+ * daylight or a night photograph — a rainy street at noon reads very
+ * differently from one at midnight.
+ */
+function isNightIcon(iconCode) {
+  return typeof iconCode === "string" && iconCode.endsWith("n");
+}
+
+function photoFor(mainWeather, iconCode) {
+  return `images/${conditionOf(mainWeather).key}-${isNightIcon(iconCode) ? "night" : "day"}.jpg`;
+}
+
+/**
  * Fill the hero band. The photo only fades in once it has decoded, and the
  * condition key goes on <html> so the accent colour follows the weather.
  */
-function setFeature(mainWeather, description) {
+function setFeature(mainWeather, description, iconCode) {
   const cond = conditionOf(mainWeather);
   document.documentElement.dataset.cond = cond.key;
+  document.documentElement.dataset.daylight = isNightIcon(iconCode) ? "night" : "day";
   els.heroBadge.textContent = mainWeather || "—";
 
-  if (cond.photo === state.photoSrc) return; // same condition — don't restart the fade
-  state.photoSrc = cond.photo;
+  const photo = photoFor(mainWeather, iconCode);
+  if (photo === state.photoSrc) return; // same photo — don't restart the fade
+  state.photoSrc = photo;
 
   els.heroPhoto.classList.remove("is-ready");
   els.heroPhoto.alt = description ? `${description} — illustrative photograph` : "";
 
   const img = new Image();
   img.onload = () => {
-    if (state.photoSrc !== cond.photo) return; // a newer condition won the race
-    els.heroPhoto.src = cond.photo;
+    if (state.photoSrc !== photo) return; // a newer condition won the race
+    els.heroPhoto.src = photo;
     els.heroPhoto.classList.add("is-ready");
   };
   img.onerror = () => { state.photoSrc = null; };
-  img.src = cond.photo;
+  img.src = photo;
 }
 
 /* ------------------------------------------------------------
@@ -475,7 +491,7 @@ async function loadWeather(query, label = null) {
   state.data.air = null;
 
   renderCurrent();
-  setFeature(current.weather?.[0]?.main, current.weather?.[0]?.description);
+  setFeature(current.weather?.[0]?.main, current.weather?.[0]?.description, current.weather?.[0]?.icon);
   startClock(current.timezone ?? 0);
 
   rememberSearch(label || `${current.name}${current.sys?.country ? "," + current.sys.country : ""}`);
@@ -882,7 +898,7 @@ function renderDaily(slots, offset, current) {
     photo.decoding = "async";
     photo.width = 300;
     photo.height = 180;
-    photo.src = conditionOf(day.main).photo;
+    photo.src = photoFor(day.main, day.icon);
     photo.alt = "";
 
     const wash = document.createElement("div");

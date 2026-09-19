@@ -6,12 +6,14 @@ through photographs rather than icons alone.
 
 Built as a static site with vanilla HTML, CSS and JavaScript. No build step.
 
-![Dark and light themes](images/clouds.jpg)
+![WeatherX](images/thunderstorm-day.jpg)
 
 ## Features
 
-- **Photo-led forecast** — six condition photographs drive the hero band and the
-  five-day filmstrip. Shown at or near their native size so they stay sharp.
+- **Photo-led forecast** — twelve photographs (a day and a night variant for
+  each of six conditions) drive the hero band and the five-day filmstrip. A
+  rainy street at noon looks nothing like one at midnight, and the app shows
+  the difference. Every photo renders below its native size, so it stays sharp.
 - **Condition-driven accent** — the interface hue follows the weather: amber for
   clear, blue for rain, violet for storms, ice for snow, slate for mist.
 - **Live local clock** for the searched city, in its own timezone.
@@ -97,5 +99,11 @@ the file.
 
 ## Credits
 
-Weather data from [OpenWeather](https://openweathermap.org/). Condition icons
-from OpenWeather; condition photographs are bundled in `images/`.
+Weather data, condition icons, air quality and geocoding from
+[OpenWeather](https://openweathermap.org/).
+
+The condition photographs come from [Wikimedia Commons](https://commons.wikimedia.org/)
+under licences that permit reuse (CC0, public domain, CC BY and CC BY-SA).
+Per-image author, licence and source links are in **[CREDITS.md](CREDITS.md)** —
+keep that file if you reuse this project, since the CC BY and CC BY-SA licences
+require attribution.

@@ -1,11 +1,11 @@
 /* ============================================================
    WeatherX — photographic weather report
    ------------------------------------------------------------
-   The six condition photographs are ~300x180 source files, so
-   every treatment below keeps them at or near native size:
-   a 230px hero band (~1.6x) masked with grain, and filmstrip
-   cards around 150-190px (a downscale, so genuinely crisp).
-   Nothing is stretched full-bleed.
+   Twelve condition photographs (day + night for each of six
+   conditions), each 1000x666 and licensed for reuse — see
+   CREDITS.md. Every treatment keeps them at or below native
+   size: a 230px hero band and filmstrip cards around 150-190px
+   are both downscales, so the photographs stay sharp.
    ============================================================ */
 :root,
 :root[data-theme="dark"] {
@@ -18,7 +18,7 @@
 
   --text:      #eef1f7;
   --text-dim:  #a4adbe;
-  --text-faint:#6f7996;
+  --text-faint:#79839f;
   --on-accent: #0b0d12;
 
   --accent:    #6aa6df;
@@ -40,7 +40,7 @@
 
   --text:      #16181d;
   --text-dim:  #565e6e;
-  --text-faint:#8b93a3;
+  --text-faint:#5d6472;
   --on-accent: #ffffff;
 
   --accent:    #2a6fb0;
@@ -175,6 +175,9 @@ a:hover { text-decoration: underline; }
   border-top: 1px solid var(--line-soft);
   font-size: 0.78rem; color: var(--text-faint);
 }
+.footer { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.4rem; }
+.footer a { display: inline-block; padding: 0.35rem 0.1rem; }
+.footer__sep { opacity: 0.5; }
 
 /* ============================================================
    Search
@@ -261,7 +264,7 @@ a:hover { text-decoration: underline; }
   font: 500 0.79rem/1 "Inter", sans-serif; cursor: pointer; transition: color 0.2s;
 }
 .chip__go { padding: 0.4rem 0.3rem 0.4rem 0.7rem; }
-.chip__x  { padding: 0.4rem 0.6rem 0.4rem 0.3rem; font-size: 0.95rem; }
+.chip__x  { padding: 0.4rem 0.6rem 0.4rem 0.3rem; font-size: 0.95rem; min-width: 26px; }
 .chip__go:hover { color: var(--text); }
 .chip__x:hover  { color: var(--danger); }
 
@@ -311,7 +314,7 @@ a:hover { text-decoration: underline; }
   border-radius: 16px; overflow: hidden; box-shadow: var(--shadow);
 }
 
-/* Fixed band: the photo covers ~470x230 from a ~300x180 source (~1.6x). */
+/* Fixed band: ~470x230 from a 1000x666 source, so always a downscale. */
 .feature__media { position: relative; height: 230px; flex: none; overflow: hidden; background: var(--surface-2); }
 .feature__photo {
   position: absolute; inset: 0; width: 100%; height: 100%;
