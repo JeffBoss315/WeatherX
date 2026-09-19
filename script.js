@@ -132,6 +132,17 @@ const distUnit = () => (isImperial() ? "mi" : "km");
 const round = (n) => Math.round(n);
 const temp = (c) => `${round(toTemp(c))}${tempUnit()}`;
 
+/**
+ * Late in the local day only one forecast slot is left, so today's bucket can
+ * collapse to a single value and render as "H 10° · L 10°" — accurate, but it
+ * says nothing and understates a real high the free tier never saw. The check
+ * is unit-aware: a span can round flat in °C yet still differ in °F.
+ */
+function hasUsefulTodayRange() {
+  const r = state.todayRange;
+  return Boolean(r) && round(toTemp(r.max)) !== round(toTemp(r.min));
+}
+
 /* ------------------------------------------------------------
    Formatting helpers
    ------------------------------------------------------------ */
@@ -559,7 +570,7 @@ function renderCurrent() {
   // so today's real high and low come from the forecast buckets instead.
   // Late in the local day the forecast has no slots left for today, so the
   // range is unknowable on the free tier — hide it rather than show em-dashes.
-  els.heroRange.hidden = !state.todayRange;
+  els.heroRange.hidden = !hasUsefulTodayRange();
   if (state.todayRange) {
     els.heroMax.textContent = temp(state.todayRange.max);
     els.heroMin.textContent = temp(state.todayRange.min);
@@ -885,7 +896,7 @@ function renderDaily(slots, offset, current) {
     els.heroMax.textContent = temp(today.max);
     els.heroMin.textContent = temp(today.min);
   }
-  els.heroRange.hidden = !today;
+  els.heroRange.hidden = !hasUsefulTodayRange();
 
   // Each day is a photo card: the condition photograph carries the forecast.
   for (const day of days) {
