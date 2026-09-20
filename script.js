@@ -511,7 +511,10 @@ async function loadWeather(query, label = null) {
   setFeature(current.weather?.[0]?.main, current.weather?.[0]?.description, current.weather?.[0]?.icon);
   startClock(current.timezone ?? 0);
 
-  rememberSearch(label || `${current.name}${current.sys?.country ? "," + current.sys.country : ""}`);
+  rememberSearch(
+    label || `${current.name}${current.sys?.country ? ", " + current.sys.country : ""}`,
+    current.coord
+  );
   writeStore(STORE_LAST, JSON.stringify({ query, label }));
   syncUrl(query);
 
@@ -979,7 +982,11 @@ function closeAutocomplete() {
 }
 
 function placeLabel(place) {
-  return [place.name, place.state, place.country].filter(Boolean).join(", ");
+  const parts = [place.name];
+  // Many wards repeat their county as the state, giving "Nakuru, Nakuru, KE".
+  if (place.state && place.state !== place.name) parts.push(place.state);
+  if (place.country) parts.push(place.country);
+  return parts.join(", ");
 }
 
 async function searchPlaces(term) {
@@ -1064,27 +1071,67 @@ function choosePlace(index) {
 }
 
 /* ------------------------------------------------------------
+   Name search
+   ------------------------------------------------------------
+   OpenWeather's /weather?q= database is much smaller than its
+   geocoder: villages and wards such as Witeithie (Kiambu, KE)
+   resolve fine in geo/1.0/direct but 404 by name. So a typed
+   search is geocoded first and then fetched by coordinates,
+   which works for anywhere the geocoder knows.
+   ------------------------------------------------------------ */
+let searchSeq = 0;
+
+async function searchByName(term) {
+  const seq = ++searchSeq;
+  closeAutocomplete();
+  setLoading(true);
+
+  let place = null;
+  try {
+    const places = await fetchCached(buildUrl("geo/1.0/direct", { q: term, limit: 1 }));
+    if (Array.isArray(places) && places.length) place = places[0];
+  } catch {
+    // Geocoding is best-effort; fall through to a plain name lookup.
+  }
+
+  if (seq !== searchSeq) return; // a newer search supersedes this one
+
+  if (place) loadWeather({ lat: place.lat, lon: place.lon }, placeLabel(place));
+  else loadWeather({ q: term }); // let the weather endpoint report "not found"
+}
+
+/* ------------------------------------------------------------
    Recent searches
    ------------------------------------------------------------ */
 function getRecents() {
   try {
     const parsed = JSON.parse(readStore(STORE_RECENTS) || "[]");
-    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : [];
+    if (!Array.isArray(parsed)) return [];
+    // Entries used to be bare strings; keep those working.
+    return parsed
+      .map((x) => (typeof x === "string" ? { label: x } : x))
+      .filter((x) => x && typeof x.label === "string");
   } catch {
     return [];
   }
 }
 
-function rememberSearch(label) {
+/** Store coordinates alongside the label: a village name may not resolve again. */
+function rememberSearch(label, coord) {
   if (!label) return;
-  const list = getRecents().filter((x) => x.toLowerCase() !== label.toLowerCase());
-  list.unshift(label);
+  const entry = { label };
+  if (coord && typeof coord.lat === "number" && typeof coord.lon === "number") {
+    entry.lat = coord.lat;
+    entry.lon = coord.lon;
+  }
+  const list = getRecents().filter((x) => x.label.toLowerCase() !== label.toLowerCase());
+  list.unshift(entry);
   writeStore(STORE_RECENTS, JSON.stringify(list.slice(0, 6)));
   renderRecents();
 }
 
 function forgetSearch(label) {
-  const list = getRecents().filter((x) => x.toLowerCase() !== label.toLowerCase());
+  const list = getRecents().filter((x) => x.label.toLowerCase() !== label.toLowerCase());
   writeStore(STORE_RECENTS, JSON.stringify(list));
   renderRecents();
 }
@@ -1094,7 +1141,8 @@ function renderRecents() {
   els.recents.hidden = list.length === 0;
   els.recentsChips.replaceChildren();
 
-  for (const label of list) {
+  for (const entry of list) {
+    const label = entry.label;
     const chip = document.createElement("span");
     chip.className = "chip";
 
@@ -1104,7 +1152,12 @@ function renderRecents() {
     go.textContent = label;
     go.addEventListener("click", () => {
       els.input.value = label;
-      loadWeather({ q: label });
+      // Coordinates always resolve; a stored village name may not.
+      if (typeof entry.lat === "number") {
+        loadWeather({ lat: entry.lat, lon: entry.lon }, label);
+      } else {
+        searchByName(label);
+      }
     });
 
     const remove = document.createElement("button");
@@ -1137,7 +1190,7 @@ els.form.addEventListener("submit", (event) => {
     return;
   }
   els.input.blur();
-  loadWeather({ q: city });
+  searchByName(city);
 });
 
 els.input.addEventListener("input", () => {
@@ -1231,7 +1284,7 @@ els.suggestions.addEventListener("click", (event) => {
   const btn = event.target.closest("button[data-city]");
   if (!btn) return;
   els.input.value = btn.dataset.city;
-  loadWeather({ q: btn.dataset.city });
+  searchByName(btn.dataset.city);
 });
 
 // "/" focuses search, Escape clears it.
@@ -1259,11 +1312,16 @@ document.addEventListener("keydown", (event) => {
     return;
   }
 
-  // A shared link wins over whatever was last viewed on this device.
+  // A shared link wins over whatever was last viewed on this device. A name in
+  // the link goes through the geocoder, so ?city=Witeithie works like typing it.
   const linked = queryFromUrl();
   if (linked) {
-    if (linked.q) els.input.value = linked.q;
-    loadWeather(linked);
+    if (linked.q) {
+      els.input.value = linked.q;
+      searchByName(linked.q);
+    } else {
+      loadWeather(linked);
+    }
     return;
   }
 
@@ -1277,8 +1335,12 @@ document.addEventListener("keydown", (event) => {
     const label = saved?.label ?? null;
 
     if (query && typeof query === "object" && (query.q || (query.lat && query.lon))) {
-      if (query.q) els.input.value = query.q;
-      loadWeather(query, label);
+      if (query.q) {
+        els.input.value = query.q;
+        searchByName(query.q);
+      } else {
+        loadWeather(query, label);
+      }
     }
   } catch { /* ignore malformed cache */ }
 })();
