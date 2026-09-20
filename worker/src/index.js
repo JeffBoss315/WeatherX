@@ -25,11 +25,30 @@ const ALLOWED_PARAMS = new Set(["q", "lat", "lon", "units", "limit", "lang", "cn
 
 const UPSTREAM = "https://api.openweathermap.org";
 
+/**
+ * A loopback origin is the developer's own machine, so the port is noise —
+ * dev servers pick whatever is free. Pinning exact ports here silently broke
+ * local development, which surfaces in the browser as a bare network error.
+ */
+function isLoopback(origin) {
+  try {
+    const u = new URL(origin);
+    return (u.protocol === "http:" || u.protocol === "https:") &&
+      (u.hostname === "localhost" || u.hostname === "127.0.0.1" || u.hostname === "[::1]");
+  } catch {
+    return false;
+  }
+}
+
 function corsHeaders(request, env) {
-  const allowed = (env.ALLOWED_ORIGINS || "*").split(",").map((s) => s.trim());
+  const allowed = (env.ALLOWED_ORIGINS || "*")
+    .split(",").map((s) => s.trim()).filter(Boolean);
   const origin = request.headers.get("Origin") || "";
-  const allowOrigin =
-    allowed.includes("*") ? "*" : allowed.includes(origin) ? origin : allowed[0] || "";
+
+  let allowOrigin;
+  if (allowed.includes("*")) allowOrigin = "*";
+  else if (origin && (allowed.includes(origin) || isLoopback(origin))) allowOrigin = origin;
+  else allowOrigin = allowed[0] || "";
 
   return {
     "Access-Control-Allow-Origin": allowOrigin,
